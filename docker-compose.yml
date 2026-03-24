@@ -1,0 +1,66 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: sigeplan-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sigeplan
+      POSTGRES_USER: sigeplan
+      POSTGRES_PASSWORD: sigeplan123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sigeplan -d sigeplan"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - sigeplan-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sigeplan-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/sigeplan
+      SPRING_DATASOURCE_USERNAME: sigeplan
+      SPRING_DATASOURCE_PASSWORD: sigeplan123
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      JWT_SECRET: sua_chave_secreta_muito_forte_aqui_123456789123456789
+      JWT_EXPIRATION: 86400000
+    ports:
+      - "8080:8080"
+    networks:
+      - sigeplan-network
+
+  frontend:
+    image: node:20
+    container_name: sigeplan-frontend
+    working_dir: /app
+    restart: unless-stopped
+    volumes:
+      - C:/Users/iuryc/OneDrive/Desktop/sigeplan_frontend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    networks:
+      - sigeplan-network
+
+volumes:
+  postgres_data:
+
+networks:
+  sigeplan-network:
+    driver: bridge
