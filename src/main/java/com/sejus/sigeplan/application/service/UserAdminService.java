@@ -4,6 +4,7 @@ import com.sejus.sigeplan.application.dto.admin.UpdateUserRequest;
 import com.sejus.sigeplan.application.dto.admin.UpdateUserStatusRequest;
 import com.sejus.sigeplan.application.dto.admin.UserSummaryResponse;
 import com.sejus.sigeplan.domain.model.Role;
+import com.sejus.sigeplan.domain.model.Unit;
 import com.sejus.sigeplan.domain.model.User;
 import com.sejus.sigeplan.domain.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -121,6 +122,53 @@ public class UserAdminService {
     }
 
     @Transactional
+    public UserSummaryResponse assignUnit(UUID userId, Unit unit) {
+        User currentUser = getUserOrThrow(userId);
+
+        Set<Unit> updatedUnits = new HashSet<>(currentUser.units());
+        updatedUnits.add(unit);
+
+        User updatedUser = new User(
+                currentUser.id(),
+                currentUser.fullName(),
+                currentUser.email(),
+                currentUser.cpf(),
+                currentUser.passwordHash(),
+                currentUser.active(),
+                currentUser.roles(),
+                updatedUnits,
+                currentUser.createdAt(),
+                OffsetDateTime.now()
+        );
+
+        return toResponse(userRepository.save(updatedUser));
+    }
+
+    @Transactional
+    public UserSummaryResponse removeUnit(UUID userId, UUID unitId) {
+        User currentUser = getUserOrThrow(userId);
+
+        Set<Unit> updatedUnits = currentUser.units().stream()
+                .filter(unit -> !unit.id().equals(unitId))
+                .collect(Collectors.toSet());
+
+        User updatedUser = new User(
+                currentUser.id(),
+                currentUser.fullName(),
+                currentUser.email(),
+                currentUser.cpf(),
+                currentUser.passwordHash(),
+                currentUser.active(),
+                currentUser.roles(),
+                updatedUnits,
+                currentUser.createdAt(),
+                OffsetDateTime.now()
+        );
+
+        return toResponse(userRepository.save(updatedUser));
+    }
+
+    @Transactional
     public UserSummaryResponse updateStatus(UUID userId, UpdateUserStatusRequest request) {
         User currentUser = getUserOrThrow(userId);
 
@@ -153,7 +201,7 @@ public class UserAdminService {
                 user.cpf(),
                 user.active(),
                 user.roles().stream().map(Role::name).collect(Collectors.toSet()),
-                user.units().stream().map(unit -> unit.name()).collect(Collectors.toSet())
+                user.units().stream().map(Unit::name).collect(Collectors.toSet())
         );
     }
 

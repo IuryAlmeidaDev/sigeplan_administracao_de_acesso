@@ -1,12 +1,11 @@
 package com.sejus.sigeplan.interfaces.rest;
 
-import com.sejus.sigeplan.application.dto.admin.AssignRoleRequest;
-import com.sejus.sigeplan.application.dto.admin.UpdateUserRequest;
-import com.sejus.sigeplan.application.dto.admin.UpdateUserStatusRequest;
-import com.sejus.sigeplan.application.dto.admin.UserSummaryResponse;
+import com.sejus.sigeplan.application.dto.admin.*;
 import com.sejus.sigeplan.application.service.UserAdminService;
 import com.sejus.sigeplan.domain.model.Role;
+import com.sejus.sigeplan.domain.model.Unit;
 import com.sejus.sigeplan.domain.repository.RoleRepository;
+import com.sejus.sigeplan.domain.repository.UnitRepository;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
@@ -27,6 +26,7 @@ public class UserAdminController {
 
     private final UserAdminService userAdminService;
     private final RoleRepository roleRepository;
+    private final UnitRepository unitRepository;
 
     @GetMapping
     @PreAuthorize("hasAuthority('USER_UPDATE')")
@@ -62,6 +62,8 @@ public class UserAdminController {
         return userAdminService.updateStatus(userId, request);
     }
 
+    // --- Endpoints de Roles ---
+
     @PostMapping("/{userId}/roles")
     @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     @Operation(summary = "Atribuir papel ao usuário")
@@ -85,5 +87,32 @@ public class UserAdminController {
             @PathVariable UUID roleId
     ) {
         return userAdminService.removeRole(userId, roleId);
+    }
+
+    // --- Endpoints de Unidades ---
+
+    @PostMapping("/{userId}/units")
+    @PreAuthorize("hasAuthority('UNIT_LINK')")
+    @Operation(summary = "Vincular unidade ao usuário")
+    @ResponseStatus(HttpStatus.OK)
+    public UserSummaryResponse assignUnit(
+            @PathVariable UUID userId,
+            @Valid @RequestBody AssignUnitRequest request
+    ) {
+        Unit unit = unitRepository.findById(request.unitId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Unidade não encontrada."));
+
+        return userAdminService.assignUnit(userId, unit);
+    }
+
+    @DeleteMapping("/{userId}/units/{unitId}")
+    @PreAuthorize("hasAuthority('UNIT_LINK')")
+    @Operation(summary = "Remover vínculo de unidade do usuário")
+    @ResponseStatus(HttpStatus.OK)
+    public UserSummaryResponse removeUnit(
+            @PathVariable UUID userId,
+            @PathVariable UUID unitId
+    ) {
+        return userAdminService.removeUnit(userId, unitId);
     }
 }
