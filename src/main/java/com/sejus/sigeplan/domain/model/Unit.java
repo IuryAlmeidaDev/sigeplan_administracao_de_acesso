@@ -1,18 +1,14 @@
 package com.sejus.sigeplan.domain.model;
 
 import java.time.OffsetDateTime;
-import java.util.Set;
 import java.util.UUID;
 
-public record User(
+public record Unit(
         UUID id,
-        String fullName,
-        String email,
-        String cpf,
-        String passwordHash,
+        String name,
+        String code,
+        String description,
         boolean active,
-        Set<Role> roles,
-        Set<Unit> units,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {

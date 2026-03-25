@@ -1,14 +1,12 @@
 package com.sejus.sigeplan.domain.model;
 
 import java.time.OffsetDateTime;
-import java.util.Set;
 import java.util.UUID;
 
-public record Role(
+public record Permission(
         UUID id,
         String name,
         String description,
-        Set<Permission> permissions,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt
 ) {
