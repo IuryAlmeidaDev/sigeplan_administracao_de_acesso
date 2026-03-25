@@ -3,7 +3,9 @@ package com.sejus.sigeplan.application.service;
 import com.sejus.sigeplan.application.dto.admin.CreateRoleRequest;
 import com.sejus.sigeplan.application.dto.admin.RoleResponse;
 import com.sejus.sigeplan.application.dto.admin.UpdateRoleRequest;
+import com.sejus.sigeplan.domain.model.Permission;
 import com.sejus.sigeplan.domain.model.Role;
+import com.sejus.sigeplan.domain.repository.PermissionRepository;
 import com.sejus.sigeplan.domain.repository.RoleRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -12,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -22,6 +25,7 @@ import java.util.stream.Collectors;
 public class RoleAdminService {
 
     private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
 
     @Transactional(readOnly = true)
     public List<RoleResponse> findAll() {
@@ -80,6 +84,48 @@ public class RoleAdminService {
         return toResponse(roleRepository.save(updatedRole));
     }
 
+    @Transactional
+    public RoleResponse assignPermission(UUID roleId, UUID permissionId) {
+        Role currentRole = getRoleOrThrow(roleId);
+
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Permissão não encontrada."));
+
+        Set<Permission> updatedPermissions = new HashSet<>(currentRole.permissions());
+        updatedPermissions.add(permission);
+
+        Role updatedRole = new Role(
+                currentRole.id(),
+                currentRole.name(),
+                currentRole.description(),
+                updatedPermissions,
+                currentRole.createdAt(),
+                OffsetDateTime.now()
+        );
+
+        return toResponse(roleRepository.save(updatedRole));
+    }
+
+    @Transactional
+    public RoleResponse removePermission(UUID roleId, UUID permissionId) {
+        Role currentRole = getRoleOrThrow(roleId);
+
+        Set<Permission> updatedPermissions = currentRole.permissions().stream()
+                .filter(p -> !p.id().equals(permissionId))
+                .collect(Collectors.toSet());
+
+        Role updatedRole = new Role(
+                currentRole.id(),
+                currentRole.name(),
+                currentRole.description(),
+                updatedPermissions,
+                currentRole.createdAt(),
+                OffsetDateTime.now()
+        );
+
+        return toResponse(roleRepository.save(updatedRole));
+    }
+
     private Role getRoleOrThrow(UUID roleId) {
         return roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Papel não encontrado."));
@@ -91,14 +137,15 @@ public class RoleAdminService {
                 role.name(),
                 role.description(),
                 role.permissions().stream()
-                        .map(permission -> permission.name())
+                        .map(Permission::name)
                         .collect(Collectors.toSet())
         );
     }
 
     private String normalizeRoleName(String name) {
-        String value = name == null ? null : name.trim().toUpperCase();
-        return value != null && value.startsWith("ROLE_") ? value : "ROLE_" + value;
+        if (name == null) return null;
+        String value = name.trim().toUpperCase();
+        return value.startsWith("ROLE_") ? value : "ROLE_" + value;
     }
 
     private String normalizeDescription(String description) {

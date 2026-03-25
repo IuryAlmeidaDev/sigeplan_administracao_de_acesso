@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.sejus.sigeplan.application.dto.admin.AssignPermissionRequest;
 
 
 import java.util.List;
@@ -53,4 +54,23 @@ public class RoleAdminController {
     ) {
         return roleAdminService.update(roleId, request);
     }
+    @PostMapping("/{roleId}/permissions")
+    @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
+    @Operation(summary = "Atribuir permissão ao papel")
+    public RoleResponse assignPermission(
+            @PathVariable UUID roleId,
+            @Valid @RequestBody AssignPermissionRequest request
+    ) {
+        return roleAdminService.assignPermission(roleId, request.permissionId());
+}
+
+    @DeleteMapping("/{roleId}/permissions/{permissionId}")
+    @PreAuthorize("hasAuthority('PERMISSION_MANAGE')")
+    @Operation(summary = "Remover permissão do papel")
+    public RoleResponse removePermission(
+            @PathVariable UUID roleId,
+            @PathVariable UUID permissionId
+    ) {
+    return roleAdminService.removePermission(roleId, permissionId);
+}
 }
